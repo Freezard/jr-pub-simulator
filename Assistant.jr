@@ -1,0 +1,40 @@
+import edu.ucdavis.jr.JR;
+import pub.*;
+
+public class Assistant{	
+	static op int[] cleanTable(int);
+	static op void goingHome();
+	private op void timeout();
+	private boolean finalRound;
+	
+	private process assistant{
+		while(true){
+			Pub.monitor.assistantRests();
+			Pub.c.setAlarm(timeout, new Time(0, 0, PubParameters.timeToWaitBetweenWashingRounds));
+			inni void Land.emptyBar(){
+				System.out.println("LAST ROUND");
+				finalRound = true;
+			}
+			[] void timeout(){}
+			int[] nrGlassesCupsTotal = new int[2];
+			for(int i = 0;i < PubParameters.tables;i++){
+				int[] nrGlassesCups = cleanTable(i);
+				nrGlassesCupsTotal[0] += nrGlassesCups[0];
+				nrGlassesCupsTotal[1] += nrGlassesCups[1];
+			}
+			JR.nap(PubParameters.timeToPickUpPutDownCupAndGlass * (nrGlassesCupsTotal[0] + nrGlassesCupsTotal[1]));
+			Pub.monitor.assistantWashes();
+			JR.nap(PubParameters.timeToWashGlassAndCup * (nrGlassesCupsTotal[0] + nrGlassesCupsTotal[1]));
+			Pub.monitor.assistantPutsContainersInCupboard(nrGlassesCupsTotal[1], nrGlassesCupsTotal[0]);
+			JR.nap(PubParameters.timeToPickUpPutDownCupAndGlass * (nrGlassesCupsTotal[0] + nrGlassesCupsTotal[1]));
+			for(int i = 0;i < nrGlassesCupsTotal[0];i++)
+				V(Pub.glasses);
+			for(int i = 0;i < nrGlassesCupsTotal[1];i++)
+				V(Pub.cups);
+	        if(finalRound)
+				break;
+		}
+		send goingHome();
+		Pub.monitor.assistantGoesHome();
+	}
+}

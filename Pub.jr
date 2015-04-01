@@ -1,0 +1,120 @@
+import edu.ucdavis.jr.*;
+import pub.*;
+import monitor.*;
+
+public class Pub{
+	static sem beertap = 1;
+	static sem chocolate = 1;
+	static sem coffee = 1;
+	static sem milk = 1;
+	static cap void () glasses;
+	static cap void () cups;
+	static op void closingTimeSoon();
+	static op void closingTime();
+	static Clock c;
+	static int simulationTime;
+	private int barClosesAt;
+	
+	private PubState state;
+	static PubMonitor monitor;
+	private PubProperties p;	
+	
+	public Pub(){
+		simulationTime = 1;
+		config(simulationTime);
+		barClosesAt = 20;
+		glasses = new sem(PubParameters.glassesInCupboard);
+		cups = new sem(PubParameters.cupsInCupboard);
+		for(int i = 0;i < PubParameters.tables;i++)
+			new Table(i, PubParameters.capacityOfTable);	
+		addProperties();
+		op void timeout();
+		c = new Clock(simulationTime);
+		c.setAlarm(closingTimeSoon, new Time(0, barClosesAt - 10, 0));
+		c.setAlarm(closingTime, new Time(0, barClosesAt, 0));
+		new Land();
+		new Maid();
+		new Assistant();
+		for(int i = 0;i < PubParameters.customers && !Land.closingTime;i++){
+			new Customer(Integer.toString(i));
+			c.setAlarm(timeout, new Time(0, 2, 0));
+			inni void timeout(){}
+		}
+	}
+	
+	public static void main(String[] args){
+		new Pub();
+	}		
+	
+	public void config(int simulationTime){
+		PubParameters.beerDontListenToLastCallRatio = 1;
+		PubParameters.beerListenToLastCallRatio = 2;
+		PubParameters.capacityOfTable = 2;
+		PubParameters.cappuccinoRatio = 2;
+		PubParameters.chocolateRatio = 1;
+		PubParameters.cupsInCupboard = 5;
+		PubParameters.customers = 15;
+		PubParameters.glassesInCupboard = 5;
+		PubParameters.numberOfDrink = 5;
+		PubParameters.tables = 5;
+		PubParameters.timeToDrink = (int) (simulationTime * 30);
+		PubParameters.timeToFetchCupAndGlass = (int) (simulationTime * 3);
+		PubParameters.timeToFetchIngredient = (int) (simulationTime * 5);
+		PubParameters.timeToPickUpPutDownCupAndGlass = (int) (simulationTime * 3);
+		PubParameters.timeToPrepareBeverage = (int) (simulationTime * 15);
+		PubParameters.timeToWaitBetweenWashingRounds = 30;
+		PubParameters.timeToWashGlassAndCup = (int) (simulationTime * 10);
+	}
+	
+	public void addProperties(){
+		state = new PubState();
+		monitor = new PubMonitor(state);
+		p = new PubProperties();
+		
+		Property landlordHasMilk = 
+		p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.landlordHolding.contains(PubState.PubResource.Milk);
+			}
+		});
+		Property barmaidHasMilk = 
+			p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.barmaidHolding.contains(PubState.PubResource.Milk);
+			}
+		});		
+		Property assistantWashing = p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.assistant.equals(PubState.AssistantState.Washing);
+			}
+		});
+		Property assistantCollecting = p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.assistant.equals(PubState.AssistantState.Collecting);
+			}
+		});
+		Property assistantGoesHome = p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.assistant.equals(PubState.AssistantState.Left);
+			}
+		});
+		Property barmaidGoesHome = p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.barmaid.equals(PubState.BarmaidState.Left);
+			}
+		});
+		Property assistantRests = p.inspect(new PubProperties.Inspector() {
+			public boolean inspectState(PubState state) {
+			return state.assistant.equals(null);
+			}
+		});
+		
+		Property prop1 = p.always(p.not(p.andP(landlordHasMilk,barmaidHasMilk)));
+		Property prop2 = p.always(p.not(p.andP(assistantWashing, assistantCollecting)));
+		//Property prop3 = p.implies(assistantGoesHome, p.falseP());
+
+		monitor.addProperty(prop1, "Both the landlord and barmaid acquired the milk");
+		monitor.addProperty(prop2, "The assistant washes and collects at the same time");
+		//monitor.addProperty(prop3, "The assistant never goes home.");
+	}
+}

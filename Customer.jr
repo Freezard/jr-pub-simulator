@@ -1,0 +1,63 @@
+import edu.ucdavis.jr.*;
+import pub.*;
+import java.lang.Math;
+
+public class Customer{
+	private op void timeout();
+	static op PubState.ContainerType order(Customer);
+	static op void enter(Customer);
+	static op void exit(Customer);
+	static op boolean putDownDrink(Customer);
+	String name;
+	private int drinksLeft;
+	int favoriteTable;
+	PubState.ContainerType container;
+	private boolean crazy;
+	PubState.DrinkType drink;
+
+	public Customer(String name){
+		this.name = name;
+		drinksLeft = PubParameters.numberOfDrink;
+		favoriteTable = (int) Math.floor(Math.random() * (PubParameters.tables - 1));
+		int totalRatio = PubParameters.cappuccinoRatio + PubParameters.chocolateRatio
+			+ PubParameters.beerDontListenToLastCallRatio + PubParameters.beerListenToLastCallRatio;
+		int random = (int) Math.floor(Math.random() * totalRatio);
+		if(random >= totalRatio - PubParameters.cappuccinoRatio)
+			drink = PubState.DrinkType.Cappuccino;
+		else if(random >= totalRatio - PubParameters.cappuccinoRatio - PubParameters.chocolateRatio)
+			drink = PubState.DrinkType.HotChocolate;
+		else if(random >= totalRatio - PubParameters.cappuccinoRatio
+			- PubParameters.chocolateRatio - PubParameters.beerListenToLastCallRatio)
+			drink = PubState.DrinkType.Beer;
+		else{
+			drink = PubState.DrinkType.Beer;
+			crazy = true;
+		}
+	}
+
+	public process customer{
+		send enter(this);
+		Pub.monitor.customerEnters(name);
+		while(drinksLeft-- > 0){
+			Pub.monitor.customerEntersQueue(name);
+			container = order(this);
+			if(container == null)
+				break;
+			else Pub.monitor.customerServedDrink(name, drink);
+			Pub.monitor.customerDrinking(name);
+			if(crazy && drinksLeft != 0){
+				Pub.c.setAlarm(timeout, new Time(0, 0, PubParameters.timeToDrink / Pub.simulationTime));
+				inni void Land.lastOrder(){
+					drinksLeft = 1;
+				}
+				[] void timeout(){}
+			}
+			else JR.nap(PubParameters.timeToDrink);
+			Pub.monitor.customerTryPuttingDownDrink(name);
+			call putDownDrink(this);
+			Pub.monitor.customerPutDownDrink(name, favoriteTable);
+		}
+		send exit(this);
+		Pub.monitor.customerLeaves(name);
+	}
+}

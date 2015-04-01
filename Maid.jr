@@ -1,0 +1,70 @@
+import edu.ucdavis.jr.JR;
+import pub.*;
+
+public class Maid{
+	private PubState.ContainerType container;
+	private boolean closingTime;
+	
+	private process barmaid{
+		while(!closingTime){
+			Pub.monitor.barmaidAwaitsCustomer();
+		
+			inni PubState.ContainerType Customer.order(Customer c){
+				Pub.monitor.barmaidTakesOrder();
+				Pub.monitor.customerWaitingForDrink(c.name);
+			
+				if(c.drink == PubState.DrinkType.Beer){
+					container = PubState.ContainerType.Glass;
+					P(Pub.glasses);
+					Pub.monitor.barmaidTakesContainer(container);
+					JR.nap(PubParameters.timeToFetchCupAndGlass);
+					P(Pub.beertap);
+					Pub.monitor.barmaidAcquires(PubState.PubResource.BeerTap);
+					JR.nap(PubParameters.timeToPrepareBeverage);
+					Pub.monitor.barmaidReleases(PubState.PubResource.BeerTap);
+					V(Pub.beertap);
+				}
+				else if(c.drink == PubState.DrinkType.Cappuccino){
+					container = PubState.ContainerType.Cup;
+					P(Pub.cups);
+					Pub.monitor.barmaidTakesContainer(container);
+					JR.nap(PubParameters.timeToFetchCupAndGlass);
+					P(Pub.coffee);
+					Pub.monitor.barmaidAcquires(PubState.PubResource.Coffee);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					P(Pub.milk);
+					Pub.monitor.barmaidAcquires(PubState.PubResource.Milk);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					JR.nap(PubParameters.timeToPrepareBeverage);
+					Pub.monitor.barmaidReleases(PubState.PubResource.Coffee);
+					V(Pub.coffee);
+					Pub.monitor.barmaidReleases(PubState.PubResource.Milk);
+					V(Pub.milk);
+				}
+				else{
+					container = PubState.ContainerType.Cup;
+					P(Pub.cups);
+					Pub.monitor.barmaidTakesContainer(container);
+					JR.nap(PubParameters.timeToFetchCupAndGlass);
+					P(Pub.chocolate);
+					Pub.monitor.barmaidAcquires(PubState.PubResource.ChocPowder);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					P(Pub.milk);
+					Pub.monitor.barmaidAcquires(PubState.PubResource.Milk);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					JR.nap(PubParameters.timeToPrepareBeverage);
+					Pub.monitor.barmaidReleases(PubState.PubResource.ChocPowder);
+					V(Pub.chocolate);
+					Pub.monitor.barmaidReleases(PubState.PubResource.Milk);
+					V(Pub.milk);		
+					}
+					Pub.monitor.barmaidServesDrink();
+					return container;
+			}
+			[] void Land.closing(){
+			closingTime = true;
+			}
+		}
+		Pub.monitor.barmaidGoesHome();
+	}
+}

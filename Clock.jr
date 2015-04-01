@@ -1,0 +1,77 @@
+import java.util.*;
+import edu.ucdavis.jr.*;
+
+public class Clock {
+
+  public op Time getTime();
+  public op void setAlarm(cap void() ch, Time interval);
+
+  private op void tick();
+
+  private int hour, min, sec;
+  private int delay;
+  private Map<Time, Set<cap void()>> alarms = new HashMap<Time, Set<cap void()>>();
+  private volatile boolean done;
+
+  private op void stop();
+
+  public void turnOff(){
+    done = true;
+  }
+
+  public Clock(int delay) {
+    sec = 0;
+    min = 0;
+    hour = 0;
+    this.delay = delay;
+  }
+
+  private process loop {
+    while (!done || !alarms.isEmpty()) {
+      inni void tick() {
+        sec++;
+        if (sec == 60) {
+          sec = 0;
+          min++;
+          if (min == 60) {
+            min = 0;
+            hour = (hour+1)%24;
+          }
+        }
+        Set<cap void()> chs = alarms.remove(new Time(hour, min, sec));
+        if (chs!=null)
+          for(Object ch : chs)
+            send ((cap void())ch)();
+      }
+      [] Time getTime() {
+        return new Time(hour, min, sec);
+      }
+      [] void setAlarm(cap void() ch, Time interval) {
+        Time t = (new Time(hour, min, sec)).add(interval);
+        Set<cap void()> chs = alarms.remove(t);
+        if (chs == null)
+          chs = new HashSet<cap void()>();
+        chs.add(ch);
+        alarms.put(t, chs);
+      }
+    }
+    send stop();
+  }
+
+  private process ticker {
+    boolean run = true;
+    long next = System.currentTimeMillis();
+    long w;
+    do {
+      inni void stop() {
+        run = false;
+      }
+      else {
+        next += delay;
+        w = Math.max(0,next-System.currentTimeMillis());
+        edu.ucdavis.jr.JR.nap(w);
+        send tick();
+      }
+    } while (run);
+  }
+}

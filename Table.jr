@@ -1,0 +1,46 @@
+import edu.ucdavis.jr.JR;
+import pub.*;
+
+public class Table{
+	private int tableNr;
+	private int spotsFree;
+	private int nrGlasses;
+	private int nrCups;
+	
+	public Table(int tableNr, int spotsFree){
+		this.tableNr = tableNr;
+		this.spotsFree = spotsFree;
+	}
+
+	private process table{
+		while(true){
+			inni boolean Customer.putDownDrink(Customer c) st c.favoriteTable == tableNr && containerSize(c.container) <= spotsFree{
+				addContainer(c.container);
+				return true;
+			}
+			[] int[] Assistant.cleanTable(int tableNr) st tableNr == this.tableNr{
+				Pub.monitor.assistantCleansTable(tableNr, nrCups, nrGlasses);
+				int nrGlassesCups[] = new int[2];
+				nrGlassesCups[0] = nrGlasses;
+				nrGlassesCups[1] = nrCups;
+				spotsFree += nrGlasses + (nrCups * 2);
+				nrGlasses = 0;
+				nrCups = 0;
+				return nrGlassesCups;
+			}
+		}
+	}
+	
+	private int containerSize(PubState.ContainerType container){
+		if(container == PubState.ContainerType.Glass)
+			return 1;
+		else return 2;
+	}
+	
+	private void addContainer(PubState.ContainerType container){
+		if(container == PubState.ContainerType.Glass)
+			nrGlasses++;
+		else nrCups++;
+		spotsFree -= containerSize(container);
+	}
+}

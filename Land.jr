@@ -1,0 +1,95 @@
+import edu.ucdavis.jr.JR;
+import pub.*;
+import java.util.*;
+
+public class Land{
+	private PubState.ContainerType container;
+	private List<Customer> customers = new ArrayList<Customer>();
+	static op void lastOrder();
+	static op void closing();
+	static op void emptyBar();
+	static boolean closingTime;
+	
+	private process landlord{
+		while(true){
+			Pub.monitor.landlordAwaitsCustomer();
+			
+			inni PubState.ContainerType Customer.order(Customer c){
+				if(closingTime)
+					return null;
+				Pub.monitor.landlordTakesOrder();
+				Pub.monitor.customerWaitingForDrink(c.name);
+			
+				if(c.drink == PubState.DrinkType.Beer){
+					container = PubState.ContainerType.Glass;
+					P(Pub.glasses);
+					Pub.monitor.landlordTakesContainer(PubState.ContainerType.Glass);
+					JR.nap(PubParameters.timeToFetchCupAndGlass);
+					P(Pub.beertap);
+					Pub.monitor.landlordAcquires(PubState.PubResource.BeerTap);
+					JR.nap(PubParameters.timeToPrepareBeverage);
+					Pub.monitor.landlordReleases(PubState.PubResource.BeerTap);
+					V(Pub.beertap);
+				}
+				else if(c.drink == PubState.DrinkType.Cappuccino){
+					container = PubState.ContainerType.Cup;
+					P(Pub.cups);
+					Pub.monitor.landlordTakesContainer(container);
+					JR.nap(PubParameters.timeToFetchCupAndGlass);
+					P(Pub.coffee);
+					Pub.monitor.landlordAcquires(PubState.PubResource.Coffee);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					P(Pub.milk);
+					Pub.monitor.landlordAcquires(PubState.PubResource.Milk);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					JR.nap(PubParameters.timeToPrepareBeverage);
+					Pub.monitor.landlordReleases(PubState.PubResource.Coffee);
+					V(Pub.coffee);
+					Pub.monitor.landlordReleases(PubState.PubResource.Milk);
+					V(Pub.milk);
+				}
+				else{
+					container = PubState.ContainerType.Cup;
+					P(Pub.cups);
+					Pub.monitor.landlordTakesContainer(container);
+					JR.nap(PubParameters.timeToFetchCupAndGlass);
+					P(Pub.chocolate);
+					Pub.monitor.landlordAcquires(PubState.PubResource.ChocPowder);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					P(Pub.milk);
+					Pub.monitor.landlordAcquires(PubState.PubResource.Milk);
+					JR.nap(PubParameters.timeToFetchIngredient);
+					JR.nap(PubParameters.timeToPrepareBeverage);
+					Pub.monitor.landlordReleases(PubState.PubResource.ChocPowder);
+					V(Pub.chocolate);
+					Pub.monitor.landlordReleases(PubState.PubResource.Milk);
+					V(Pub.milk);
+				}
+				Pub.monitor.landlordServesDrink();
+				return container;
+			}
+			[] void Customer.enter(Customer c)
+				customers.add(c);
+			[] void Customer.exit(Customer c){
+				customers.remove(c);
+				if(customers.size() == 0 && closingTime)
+					send emptyBar();
+			}
+			[] void Pub.closingTimeSoon(){
+				System.out.println("LAST ORDER");
+				for(Customer c : customers)
+					send lastOrder();
+			}
+			[] void Pub.closingTime(){
+				System.out.println("ALL CLOSING");
+				closingTime = true;
+				send closing();
+			}
+			[] void Assistant.goingHome()
+				break;
+		}
+		Pub.monitor.landlordGoesHome();
+		Pub.c.turnOff();
+		Pub.monitor.simulationOver();
+	}
+}
